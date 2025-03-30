@@ -18,12 +18,15 @@ const PORT = 3000;
 const users = [{ username: 'admin', password: 'password' }];
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const exerciseTypes = ['Abs', 'Cardio', 'Flexibility', 'Strength', 'Balance', 'Endurance', 'Agility', 'Speed', 'Power', 'Coordination'];
 
 let exercises = [];
 let exerciseId = 1;
 
-const sampleExercises = require('./data/sampleExercises.js'); // Import sample exercises
+const sampleExercises = [
+  { id: 1, text: 'Push-ups', image: 'https://via.placeholder.com/120', day: 'Monday', lastCompleted: null },
+  { id: 2, text: 'Squats', image: 'https://via.placeholder.com/120', day: 'Tuesday', lastCompleted: null },
+  { id: 3, text: 'Plank', image: 'https://via.placeholder.com/120', day: 'Wednesday', lastCompleted: null }
+];
 
 
 function sortExercises() {
@@ -151,12 +154,7 @@ app.get('/exercises', isAuthenticated, (req, res) => {
     return `
       ${dayHeader}
       <div class="exercise-card animate__animated animate__fadeInUp" draggable="true">
-        <div class="exercise-type">${ex.type}</div>  
         <div class="exercise-text">${ex.text}</div>
-        <div class="exercise-sets">${ex.sets} sets</div>
-        <div class="exercise-time">${ex.time}</div>
-       
-
         <div class="exercise-img"><img src="${ex.image}" alt="${ex.text}" /></div>
         <div class="exercise-status">${isDoneToday(ex.lastCompleted) ? '✅' : '❌'}</div>
         <div class="exercise-actions">
@@ -177,8 +175,6 @@ app.get('/exercises', isAuthenticated, (req, res) => {
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <title>Exercise Tracker</title>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-
       <style>
         body {
           font-family: 'Segoe UI', sans-serif;
@@ -199,14 +195,14 @@ app.get('/exercises', isAuthenticated, (req, res) => {
         }
         .exercise-card {
           display: grid;
-          grid-template-columns: 1fr 100px 80px 160px;
+          grid-template-columns: 1fr 100px 80px auto;
           align-items: center;
           gap: 10px;
           background: white;
           padding: 15px;
           border-radius: 10px;
           margin-top: 10px;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 10px rgba(0,0,0,0.1);
           transition: transform 0.2s ease;
         }
         .exercise-card:hover {
@@ -218,36 +214,18 @@ app.get('/exercises', isAuthenticated, (req, res) => {
           border-radius: 6px;
         }
         .exercise-actions {
-          background-color: #e0f2ff; /* Or any other color */
-          padding: 8px;
-          border-radius: 8px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          gap: 8px;
-          width: fit-content;   /* 👈 Prevents it from expanding horizontally */
-          height: auto;         /* 👈 Prevents it from stretching vertically */
-          box-sizing: border-box;
-        }
+            background: linear-gradient(to right, #f0f4f8, #d9e2ec);
+            padding: 8px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            transition: background 0.3s ease;
+          }
         .exercise-actions form {
           display: inline-block;
           margin: 0;
         }
-
-        .exercise-actions button {
-          background-color: transparent;
-          border: none;
-          font-size: 18px;
-          cursor: pointer;
-          padding: 6px;
-          border-radius: 6px;
-          transition: background-color 0.3s ease;
-        }
-
-        .exercise-actions button:hover {
-          background-color: #e0e0e0;
-        }
-
         button {
           background: none;
           border: none;
@@ -260,20 +238,16 @@ app.get('/exercises', isAuthenticated, (req, res) => {
           padding: 20px;
           border-radius: 10px;
           box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-          display: grid;
-          gap: 12px;
         }
         form[action="/exercises"] select,
         form[action="/exercises"] input {
-          width: 100%;
-          padding: 10px;
+          padding: 8px;
+          margin-right: 10px;
           border: 1px solid #ccc;
           border-radius: 6px;
-          box-sizing: border-box;
-          font-size: 16px;
         }
         form[action="/exercises"] button {
-          background:rgb(71, 73, 75);
+          background: #007bff;
           color: white;
           padding: 8px 16px;
           border-radius: 6px;
@@ -310,29 +284,15 @@ app.get('/exercises', isAuthenticated, (req, res) => {
     <body>
       <h2>Weekly Exercise Tracker</h2>
       ${tableRows || '<p>No exercises added yet.</p>'}
-      <br>
-      <hr>
+
       <form method="POST" action="/exercises">
-        <h3>Add New Exercise</h3>
         <select name="day" required>
           <option value="">Select Day</option>
           ${DAYS_OF_WEEK.map(d => `<option value="${d}">${d}</option>`).join('')}
         </select>
-
-        <select name="type" required>
-          <option value="">Exercise type</option>
-          ${exerciseTypes.map(d => `<option value="${d}">${d}</option>`).join('')}
-        </select>
-
-    
         <input name="text" placeholder="Exercise name" required />
-
-        <input name="sets" placeholder="Sets" required />
-        <input name="time" placeholder="Time (e.g., 10 min)" required />
         <input name="image" placeholder="Image URL (optional)" />
-        <button type="submit" title="Add Exercise">
-          <i class="fas fa-plus"></i>
-        </button>
+        <button type="submit">Add</button>
       </form>
 
       <div class="extra-buttons">
@@ -368,26 +328,22 @@ app.get('/exercises', isAuthenticated, (req, res) => {
 
 //-----------------------------
 app.post('/exercises', isAuthenticated, (req, res) => {
-  const { type,text,  sets, time, image, day } = req.body;
+  const { text, image, day } = req.body;
   if (!text.trim() || !day) {
     return res.send('Exercise name and day are required. <a href="/exercises">Go back</a>');
   }
 
   exercises.push({
     id: exerciseId++,
-    type,
     text,
-    sets,
-    time,
     image: image || 'https://via.placeholder.com/120',
     day,
-    lastCompleted: null,
+    lastCompleted: null
   });
 
   sortExercises();
   res.redirect('/exercises');
 });
-
 app.post('/exercises/load-sample', isAuthenticated, (req, res) => {
   exercises = [...sampleExercises];
   exerciseId = Math.max(...exercises.map(e => e.id)) + 1;
@@ -497,19 +453,8 @@ app.get('/exercises/:id/edit', isAuthenticated, (req, res) => {
           ${DAYS_OF_WEEK.map(d => `<option value="${d}" ${exercise.day === d ? 'selected' : ''}>${d}</option>`).join('')}
         </select>
 
-        <select name="type" required>
-          ${exerciseTypes.map(d => `<option value="${d}" ${exercise.type === d ? 'selected' : ''}>${d}</option>`).join('')} 
-        </select>
-
         <label>Name</label>
         <input name="text" value="${exercise.text}" required />
-
-        <label>Sets</label>
-        <input name="sets" value="${exercise.sets}" required />
-
-        <label>Time</label> 
-        <input name="time" value="${exercise.time}" required />
-
 
         <label>Image URL</label>
         <input name="image" value="${exercise.image}" />
@@ -528,12 +473,8 @@ app.post('/exercises/:id/edit', isAuthenticated, (req, res) => {
     return res.send('Exercise not found. <a href="/exercises">Back</a>');
   }
 
-  const { text, type,sets,time,image, day } = req.body;
-  exercise.type = type;
+  const { text, image, day } = req.body;
   exercise.text = text;
-
-  exercise.sets = sets;
-  exercise.time = time;
   exercise.image = image || 'https://via.placeholder.com/120';
   exercise.day = day;
 
