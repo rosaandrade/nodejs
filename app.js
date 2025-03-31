@@ -1,30 +1,49 @@
-// node app.js
-// node app.js
-const express = require('express');
-const session = require('express-session');
-const bodyParser = require('body-parser');
-const app = express();
+/*
+Application Purpose: 
+- Term Project - CRUD Application
+Group Members:
+- Rosana de Andrade - ID: 200558134
+- Leonardo Figueiredo - ID: 200577759
+- Driely de Souza Mota - ID: 200565192
+- Rafael Barroso Rodrigues - ID: 200568204
+*/
 
+// node app.js
+
+const express = require('express'); // Import the Express framework for building web apps
+const session = require('express-session'); // Middleware to manage user sessions (login/logout)
+const bodyParser = require('body-parser'); // Parses form data sent in POST requests
+const app = express(); // Initialize the Express application
+
+//------------------------------------------------------------------------------------
+//Middleware Setup
 app.use(bodyParser.urlencoded({ extended: true }));
 
+/*
+Parses form submissions (application/x-www-form-urlencoded).
+extended: true allows nested objects in forms.
+Creates secure session cookies for login tracking.
+*/
 app.use(session({
   secret: 'secret-key',
   resave: false,
   saveUninitialized: false
 }));
+//------------------------------------------------------------------------------------
+//Constants and Sample Data
+const PORT = 3000;// Server runs on localhost:3000
 
-const PORT = 3000;
+const users = [{ username: 'admin', password: 'password' }]; // Hardcoded user data for authentication
 
-const users = [{ username: 'admin', password: 'password' }];
+const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];// Days to organize exercises
+const exerciseTypes = ['Abs', 'Cardio', 'Flexibility', 'Strength', 'Balance', 'Endurance', 'Agility', 'Speed', 'Power', 'Coordination'];// Different categories of exercises
 
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-const exerciseTypes = ['Abs', 'Cardio', 'Flexibility', 'Strength', 'Balance', 'Endurance', 'Agility', 'Speed', 'Power', 'Coordination'];
+let exercises = []; // Main array storing all exercise entries
+let exerciseId = 1; // Auto-incremented ID for new exercises
 
-let exercises = [];
-let exerciseId = 1;
-
-const sampleExercises = require('./data/sampleExercises.js'); // Import sample exercises
-
+const sampleExercises = require('./data/sampleExercises.js'); // Loads sample data
+//------------------------------------------------------------------------------------
+// Helper function to sort exercises by day and name
 
 function sortExercises() {
   exercises.sort((a, b) => {
@@ -34,17 +53,22 @@ function sortExercises() {
     return a.text.localeCompare(b.text);
   });
 }
-
+//Checks if exercise was completed today
 function isDoneToday(lastCompleted) {
   const today = new Date().toDateString();
   return lastCompleted === today;
 }
-
+// Middleware for login protection
 function isAuthenticated(req, res, next) {
   if (req.session && req.session.user) return next();
   res.redirect('/login');
 }
-
+//-------------------------------------------------------------------------------------
+/* Routes Explaination
+GET /login - Displays the login form 
+Shows a login form with HTML & CSS embedded.
+No external view files used (pure HTML in res.send()).
+*/
 app.get('/login', (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -116,7 +140,11 @@ app.get('/login', (req, res) => {
     </html>
   `);
 });
-
+//--------------------------------------------------------------------------------------
+/* POST /login - Processes the login form
+Checks if the provided username and password match the hardcoded values in the users array.
+If they do, the user is logged in and redirected to the exercises page. If not, an error message is displayed.
+*/
 app.post('/login', (req, res) => {
   const { username, password } = req.body;
   const user = users.find(u => u.username === username && u.password === password);
@@ -127,7 +155,10 @@ app.post('/login', (req, res) => {
     res.send('Invalid credentials. <a href="/login">Try again</a>');
   }
 });
-
+//---------------------------------------------------------------------------------------
+/* POST /logout - Logs the user out
+Destroys the session and redirects to the login page.
+*/
 app.post('/logout', (req, res) => {
   req.session.destroy(err => {
     if (err) return res.send('Logout error.');
@@ -135,6 +166,16 @@ app.post('/logout', (req, res) => {
   });
 });
 
+//---------------------------------------------------------------------------------------
+/* GET /exercises - Displays the exercise tracker page
+Main page displaying all exercises grouped by day.
+Generates dynamic HTML including:
+-Animated cards
+-Done/undone buttons
+-Edit, delete, mark actions
+-A form to add new exercises
+Uses CSS for layout/styling and JavaScript for drag animations.
+*/
 app.get('/exercises', isAuthenticated, (req, res) => {
   let previousDay = '';
   let tableRows = exercises.map(ex => {
@@ -169,6 +210,7 @@ app.get('/exercises', isAuthenticated, (req, res) => {
     `;
   }).join('');
 
+  // If no exercises are found, display a message
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -184,7 +226,7 @@ app.get('/exercises', isAuthenticated, (req, res) => {
           font-family: 'Segoe UI', sans-serif;
           background: linear-gradient(to right, #f0f4f8, #d9e2ec);
           padding: 30px;
-          max-width: 900px;
+          max-width: 1200px;
           margin: 0 auto;
         }
         h2 {
@@ -197,51 +239,85 @@ app.get('/exercises', isAuthenticated, (req, res) => {
           padding: 10px;
           border-radius: 8px;
         }
-        .exercise-card {
-          display: grid;
-          grid-template-columns: 1fr 100px 80px 160px;
-          align-items: center;
-          gap: 10px;
-          background: white;
-          padding: 15px;
-          border-radius: 10px;
-          margin-top: 10px;
-          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-          transition: transform 0.2s ease;
-        }
+.exercise-type{
+width: 80px;}
+          .exercise-type,
+          .exercise-text,
+          .exercise-sets,
+          .exercise-time {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .exercise-sets,
+          .exercise-time {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .exercise-card {
+            display: grid;
+            grid-template-columns:
+              80px       /* type */
+              1fr        /* text */
+              100px       /* sets */
+              100px       /* time */
+              100px      /* image */
+              50px       /* status */
+              minmax(180px, 1fr); /* actions */
+            align-items: center;
+            gap: 16px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 16px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+          }
         .exercise-card:hover {
           transform: translateY(-2px);
         }
         .exercise-img img {
           width: 100%;
-          height: auto;
+          max-height: 60px;
+          object-fit: contain;
           border-radius: 6px;
         }
+        .exercise-status {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          font-size: 24px;
+          width: 50px;
+        }
         .exercise-actions {
-          background-color: #e0f2ff; /* Or any other color */
-          padding: 8px;
-          border-radius: 8px;
           display: flex;
           justify-content: center;
           align-items: center;
           gap: 8px;
-          width: fit-content;   /* 👈 Prevents it from expanding horizontally */
-          height: auto;         /* 👈 Prevents it from stretching vertically */
-          box-sizing: border-box;
+          flex-wrap: nowrap; /* Prevents wrapping */
+          background: #f9f9f9;
+          padding: 8px;
+          border-radius: 6px;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+          opacity: 0.6;
+          transition: opacity 0.3s ease;
+
+
         }
         .exercise-actions form {
-          display: inline-block;
+          display: inline-block; /* Ensures buttons don’t stack */
           margin: 0;
         }
 
         .exercise-actions button {
-          background-color: transparent;
-          border: none;
-          font-size: 18px;
-          cursor: pointer;
-          padding: 6px;
-          border-radius: 6px;
-          transition: background-color 0.3s ease;
+            background: transparent;
+            border: none;
+            font-size: 18px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background-color 0.3s ease;
         }
 
         .exercise-actions button:hover {
@@ -286,8 +362,10 @@ app.get('/exercises', isAuthenticated, (req, res) => {
         .extra-buttons {
           display: flex;
           justify-content: center;
+          align-items: center;
           gap: 16px;
           margin-top: 20px;
+          flex-wrap: nowrap; /* 👈 prevents wrapping */
         }
 
         .extra-buttons button {
@@ -305,6 +383,12 @@ app.get('/exercises', isAuthenticated, (req, res) => {
           background-color: #dcdcdc;
           transform: translateY(-2px);
         }
+        .extra-buttons form {
+          display: inline-block; /* 👈 this ensures buttons don’t stack */
+          margin: 0;
+        }
+
+      }
       </style>
     </head>
     <body>
@@ -366,7 +450,12 @@ app.get('/exercises', isAuthenticated, (req, res) => {
 
 
 
-//-----------------------------
+//--------------------------------------------------------------------------------------
+/* POST /exercises - Adds a new exercise
+Creates a new exercise entry based on form data.
+Validates input and adds it to the exercises array.
+Redirects to the main exercises page after adding.
+*/
 app.post('/exercises', isAuthenticated, (req, res) => {
   const { type,text,  sets, time, image, day } = req.body;
   if (!text.trim() || !day) {
@@ -388,11 +477,24 @@ app.post('/exercises', isAuthenticated, (req, res) => {
   res.redirect('/exercises');
 });
 
+//--------------------------------------------------------------------------------------
+/* POST /exercises/load-sample - Loads sample exercises
+Loads sample data from a file.
+*/
+
 app.post('/exercises/load-sample', isAuthenticated, (req, res) => {
   exercises = [...sampleExercises];
   exerciseId = Math.max(...exercises.map(e => e.id)) + 1;
+  
+  sortExercises();
   res.redirect('/exercises');
 });
+//--------------------------------------------------------------------------------------
+/* POST /exercises/:id/mark - Marks an exercise as done
+* Marks the exercise with the given ID as completed today.
+* Updates the lastCompleted date to today.
+* Redirects to the main exercises page.
+*/
 
 app.post('/exercises/:id/mark', isAuthenticated, (req, res) => {
   const id = parseInt(req.params.id);
@@ -405,6 +507,13 @@ app.post('/exercises/:id/mark', isAuthenticated, (req, res) => {
   }
 });
 
+//--------------------------------------------------------------------------------------
+/* POST /exercises/:id/unmark - Unmarks an exercise as done
+* Unmarks the exercise with the given ID as not completed.
+* Sets the lastCompleted date to null.
+* Redirects to the main exercises page.
+*/
+
 app.post('/exercises/:id/unmark', isAuthenticated, (req, res) => {
   const id = parseInt(req.params.id);
   const exercise = exercises.find(e => e.id === id);
@@ -416,12 +525,23 @@ app.post('/exercises/:id/unmark', isAuthenticated, (req, res) => {
   }
 });
 
+//--------------------------------------------------------------------------------------
+/* POST /exercises/:id/delete - Deletes an exercise
+* Deletes the exercise with the given ID from the exercises array.
+* Redirects to the main exercises page after deletion.
+*/
 app.post('/exercises/:id/delete', isAuthenticated, (req, res) => {
   const id = parseInt(req.params.id);
   exercises = exercises.filter(e => e.id !== id);
   res.redirect('/exercises');
 });
 
+//--------------------------------------------------------------------------------------
+/* GET /exercises/:id/edit - Displays the edit form for an exercise
+* Displays a form to edit the exercise with the given ID.
+* The form is pre-filled with the current exercise data.
+* Uses HTML and CSS for styling.
+*/
 app.get('/exercises/:id/edit', isAuthenticated, (req, res) => {
   const id = parseInt(req.params.id);
   const exercise = exercises.find(e => e.id === id);
@@ -496,7 +616,8 @@ app.get('/exercises/:id/edit', isAuthenticated, (req, res) => {
         <select name="day" required>
           ${DAYS_OF_WEEK.map(d => `<option value="${d}" ${exercise.day === d ? 'selected' : ''}>${d}</option>`).join('')}
         </select>
-
+        
+        <label>Exercise Type</label>
         <select name="type" required>
           ${exerciseTypes.map(d => `<option value="${d}" ${exercise.type === d ? 'selected' : ''}>${d}</option>`).join('')} 
         </select>
@@ -521,6 +642,13 @@ app.get('/exercises/:id/edit', isAuthenticated, (req, res) => {
   `);
 });
 
+//--------------------------------------------------------------------------------------
+/* POST /exercises/:id/edit - Processes the edit form
+* Updates the exercise data based on the form submission.
+* Validates input and updates the corresponding exercise in the exercises array.
+* Redirects to the main exercises page after editing.
+*/
+
 app.post('/exercises/:id/edit', isAuthenticated, (req, res) => {
   const id = parseInt(req.params.id);
   const exercise = exercises.find(e => e.id === id);
@@ -541,15 +669,29 @@ app.post('/exercises/:id/edit', isAuthenticated, (req, res) => {
   res.redirect('/exercises');
 });
 
+//--------------------------------------------------------------------------------------
+/* POST /exercises/reset - Resets all exercises
+* Resets the lastCompleted date for all exercises to null.
+* Redirects to the main exercises page after resetting.
+*/
 app.post('/exercises/reset', isAuthenticated, (req, res) => {
   exercises.forEach(e => e.lastCompleted = null);
   res.redirect('/exercises');
 });
-
+//--------------------------------------------------------------------------------------
+/* GET / - Redirects to the exercises page
+* Redirects the root URL to the exercises page.
+* This is the default landing page of the application.
+*/
 app.get('/', (req, res) => {
   res.redirect('/exercises');
 });
 
+//--------------------------------------------------------------------------------------
+/* Server Setup
+* Starts the Express server on the specified port (3000).
+* Logs a message to the console indicating the server is running.
+*/
 app.listen(PORT, () => {
   console.log(`✅ Exercise tracker running at http://localhost:${PORT}`);
 });
