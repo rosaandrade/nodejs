@@ -25,9 +25,9 @@ extended: true allows nested objects in forms.
 Creates secure session cookies for login tracking.
 */
 app.use(session({
-  secret: 'secret-key',
-  resave: false,
-  saveUninitialized: false
+  secret: 'secret-key', //
+  resave: false, // Don't save session if unmodified
+  saveUninitialized: false // Don't create session until something stored
 }));
 //------------------------------------------------------------------------------------
 //Constants and Sample Data
@@ -47,21 +47,21 @@ const sampleExercises = require('./data/sampleExercises.js'); // Loads sample da
 
 function sortExercises() {
   exercises.sort((a, b) => {
-    const dayIndexA = DAYS_OF_WEEK.indexOf(a.day);
-    const dayIndexB = DAYS_OF_WEEK.indexOf(b.day);
-    if (dayIndexA !== dayIndexB) return dayIndexA - dayIndexB;
-    return a.text.localeCompare(b.text);
+    const dayIndexA = DAYS_OF_WEEK.indexOf(a.day); //
+    const dayIndexB = DAYS_OF_WEEK.indexOf(b.day); //
+    if (dayIndexA !== dayIndexB) return dayIndexA - dayIndexB; //s
+    return a.text.localeCompare(b.text); // // Sort by name if days are the same
   });
 }
 //Checks if exercise was completed today
 function isDoneToday(lastCompleted) {
-  const today = new Date().toDateString();
-  return lastCompleted === today;
+  const today = new Date().toDateString(); // Get today's date as a string
+  return lastCompleted === today; //// Compare with last completed date
 }
 // Middleware for login protection
-function isAuthenticated(req, res, next) {
-  if (req.session && req.session.user) return next();
-  res.redirect('/login');
+function isAuthenticated(req, res, next) { // Middleware to check if user is logged in
+  if (req.session && req.session.user) return next(); //// If user is logged in, proceed to the next middleware/route
+  res.redirect('/login'); //// If not logged in, redirect to login page
 }
 //-------------------------------------------------------------------------------------
 /* Routes Explaination
@@ -69,7 +69,7 @@ GET /login - Displays the login form
 Shows a login form with HTML & CSS embedded.
 No external view files used (pure HTML in res.send()).
 */
-app.get('/login', (req, res) => {
+app.get('/login', (req, res) => { // Render the login page
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -146,23 +146,23 @@ Checks if the provided username and password match the hardcoded values in the u
 If they do, the user is logged in and redirected to the exercises page. If not, an error message is displayed.
 */
 app.post('/login', (req, res) => {
-  const { username, password } = req.body;
-  const user = users.find(u => u.username === username && u.password === password);
-  if (user) {
-    req.session.user = user;
-    res.redirect('/exercises');
-  } else {
-    res.send('Invalid credentials. <a href="/login">Try again</a>');
+  const { username, password } = req.body; // Get username and password from the form submission
+  const user = users.find(u => u.username === username && u.password === password); //// Check if user exists in the hardcoded array
+  if (user) { //// If valid credentials, store user in session and redirect to exercises page
+    req.session.user = user; // Store user in session
+    res.redirect('/exercises'); //// Redirect to exercises page
+  } else { //// If invalid credentials, show error message
+    res.send('Invalid credentials. <a href="/login">Try again</a>'); //// If invalid, show error message and link back to login page
   }
 });
 //---------------------------------------------------------------------------------------
 /* POST /logout - Logs the user out
 Destroys the session and redirects to the login page.
 */
-app.post('/logout', (req, res) => {
-  req.session.destroy(err => {
-    if (err) return res.send('Logout error.');
-    res.redirect('/login');
+app.post('/logout', (req, res) => { // Logout route
+  req.session.destroy(err => { // Destroy the session
+    if (err) return res.send('Logout error.'); // Handle error
+    res.redirect('/login'); // Redirect to login page
   });
 });
 
@@ -177,16 +177,17 @@ Generates dynamic HTML including:
 Uses CSS for layout/styling and JavaScript for drag animations.
 */
 app.get('/exercises', isAuthenticated, (req, res) => {
-  let previousDay = '';
+  let previousDay = '';// Initialize previousDay to an empty string to track the last displayed day
+
   let tableRows = exercises.map(ex => {
-    let dayHeader = '';
-    if (ex.day !== previousDay) {
+    let dayHeader = '';// Initialize dayHeader as an empty string for each exercise
+    if (ex.day !== previousDay) { //// If the current exercise's day is different from the last displayed day
       dayHeader = `
         <div class="day-group animate__animated animate__fadeIn">
           <h3>${ex.day}</h3>
         </div>
       `;
-      previousDay = ex.day;
+      previousDay = ex.day; // Update previousDay to the current exercise's day
     }
 
     return `
@@ -210,7 +211,7 @@ app.get('/exercises', isAuthenticated, (req, res) => {
     `;
   }).join('');
 
-  // If no exercises are found, display a message
+
   res.send(`
     <!DOCTYPE html>
     <html lang="en">
@@ -457,12 +458,12 @@ Validates input and adds it to the exercises array.
 Redirects to the main exercises page after adding.
 */
 app.post('/exercises', isAuthenticated, (req, res) => {
-  const { type,text,  sets, time, image, day } = req.body;
-  if (!text.trim() || !day) {
+  const { type,text,  sets, time, image, day } = req.body; //// Get form data
+  if (!text.trim() || !day) { // Validate input
     return res.send('Exercise name and day are required. <a href="/exercises">Go back</a>');
   }
 
-  exercises.push({
+  exercises.push({ // Add new exercise to the array
     id: exerciseId++,
     type,
     text,
@@ -473,8 +474,8 @@ app.post('/exercises', isAuthenticated, (req, res) => {
     lastCompleted: null,
   });
 
-  sortExercises();
-  res.redirect('/exercises');
+  sortExercises(); // Sort exercises by day and name
+  res.redirect('/exercises'); //  Redirect to main exercises page
 });
 
 //--------------------------------------------------------------------------------------
@@ -482,12 +483,12 @@ app.post('/exercises', isAuthenticated, (req, res) => {
 Loads sample data from a file.
 */
 
-app.post('/exercises/load-sample', isAuthenticated, (req, res) => {
-  exercises = [...sampleExercises];
-  exerciseId = Math.max(...exercises.map(e => e.id)) + 1;
+app.post('/exercises/load-sample', isAuthenticated, (req, res) => { //// Load sample exercises from the file
+  exercises = [...sampleExercises]; // Load sample exercises from the file
+  exerciseId = Math.max(...exercises.map(e => e.id)) + 1; //// Update exerciseId to the next available ID
   
-  sortExercises();
-  res.redirect('/exercises');
+  sortExercises(); // Sort exercises by day and name
+  res.redirect('/exercises'); //  Redirect to main exercises page
 });
 //--------------------------------------------------------------------------------------
 /* POST /exercises/:id/mark - Marks an exercise as done
@@ -496,14 +497,14 @@ app.post('/exercises/load-sample', isAuthenticated, (req, res) => {
 * Redirects to the main exercises page.
 */
 
-app.post('/exercises/:id/mark', isAuthenticated, (req, res) => {
-  const id = parseInt(req.params.id);
-  const exercise = exercises.find(e => e.id === id);
-  if (exercise) {
-    exercise.lastCompleted = new Date().toDateString();
-    res.redirect('/exercises');
+app.post('/exercises/:id/mark', isAuthenticated, (req, res) => { //// Mark an exercise as done
+  const id = parseInt(req.params.id); //// Get exercise ID from the URL
+  const exercise = exercises.find(e => e.id === id); //// Find the exercise by ID
+  if (exercise) { //  // If exercise found, update lastCompleted date
+    exercise.lastCompleted = new Date().toDateString();// // Set lastCompleted to today's date
+    res.redirect('/exercises'); // Redirect to main exercises page
   } else {
-    res.send('Exercise not found. <a href="/exercises">Back</a>');
+    res.send('Exercise not found. <a href="/exercises">Back</a>'); // If exercise not found, show error message
   }
 });
 
@@ -514,14 +515,14 @@ app.post('/exercises/:id/mark', isAuthenticated, (req, res) => {
 * Redirects to the main exercises page.
 */
 
-app.post('/exercises/:id/unmark', isAuthenticated, (req, res) => {
-  const id = parseInt(req.params.id);
-  const exercise = exercises.find(e => e.id === id);
-  if (exercise) {
-    exercise.lastCompleted = null;
-    res.redirect('/exercises');
-  } else {
-    res.send('Exercise not found. <a href="/exercises">Back</a>');
+app.post('/exercises/:id/unmark', isAuthenticated, (req, res) => { //// Unmark an exercise as done
+  const id = parseInt(req.params.id); //// Get exercise ID from the URL
+  const exercise = exercises.find(e => e.id === id); // Find the exercise by ID
+  if (exercise) { //// If exercise found, set lastCompleted date to null
+    exercise.lastCompleted = null; //// Set lastCompleted to null
+    res.redirect('/exercises'); // // Redirect to main exercises page
+  } else { //// If exercise not found, show error message
+    res.send('Exercise not found. <a href="/exercises">Back</a>'); //// If exercise not found, show error message
   }
 });
 
@@ -530,10 +531,10 @@ app.post('/exercises/:id/unmark', isAuthenticated, (req, res) => {
 * Deletes the exercise with the given ID from the exercises array.
 * Redirects to the main exercises page after deletion.
 */
-app.post('/exercises/:id/delete', isAuthenticated, (req, res) => {
-  const id = parseInt(req.params.id);
-  exercises = exercises.filter(e => e.id !== id);
-  res.redirect('/exercises');
+app.post('/exercises/:id/delete', isAuthenticated, (req, res) => { //// Delete an exercise by ID
+  const id = parseInt(req.params.id); // Get exercise ID from the URL
+  exercises = exercises.filter(e => e.id !== id); //  // Filter out the exercise with the given ID
+  res.redirect('/exercises'); // Redirect to main exercises page
 });
 
 //--------------------------------------------------------------------------------------
@@ -542,11 +543,11 @@ app.post('/exercises/:id/delete', isAuthenticated, (req, res) => {
 * The form is pre-filled with the current exercise data.
 * Uses HTML and CSS for styling.
 */
-app.get('/exercises/:id/edit', isAuthenticated, (req, res) => {
-  const id = parseInt(req.params.id);
-  const exercise = exercises.find(e => e.id === id);
-  if (!exercise) {
-    return res.send('Exercise not found. <a href="/exercises">Back</a>');
+app.get('/exercises/:id/edit', isAuthenticated, (req, res) => { //// Render the edit page for a specific exercise
+  const id = parseInt(req.params.id); // Get exercise ID from the URL
+  const exercise = exercises.find(e => e.id === id); //// Find the exercise by ID
+  if (!exercise) { // If exercise not found, show error message
+    return res.send('Exercise not found. <a href="/exercises">Back</a>'); //  // Show error message and link back to exercises page
   }
 //-------------edit page
   res.send(`
@@ -649,24 +650,24 @@ app.get('/exercises/:id/edit', isAuthenticated, (req, res) => {
 * Redirects to the main exercises page after editing.
 */
 
-app.post('/exercises/:id/edit', isAuthenticated, (req, res) => {
-  const id = parseInt(req.params.id);
-  const exercise = exercises.find(e => e.id === id);
-  if (!exercise) {
+app.post('/exercises/:id/edit', isAuthenticated, (req, res) => { //// Process the edit form submission
+  const id = parseInt(req.params.id); //// Get exercise ID from the URL
+  const exercise = exercises.find(e => e.id === id); //// Find the exercise by ID
+  if (!exercise) { //// If exercise not found, show error message
     return res.send('Exercise not found. <a href="/exercises">Back</a>');
   }
 
-  const { text, type,sets,time,image, day } = req.body;
-  exercise.type = type;
-  exercise.text = text;
+  const { text, type,sets,time,image, day } = req.body; //// Get form data
+  exercise.type = type; //// Update exercise type
+  exercise.text = text; //// Update exercise name
 
-  exercise.sets = sets;
-  exercise.time = time;
-  exercise.image = image || 'https://via.placeholder.com/120';
-  exercise.day = day;
+  exercise.sets = sets; //// Update exercise sets
+  exercise.time = time; //// Update exercise time
+  exercise.image = image || 'https://via.placeholder.com/120'; // // Update exercise image URL
+  exercise.day = day; // // Update exercise day
 
-  sortExercises();
-  res.redirect('/exercises');
+  sortExercises(); // Sort exercises by day and name
+  res.redirect('/exercises'); //  // Redirect to main exercises page
 });
 
 //--------------------------------------------------------------------------------------
@@ -674,17 +675,17 @@ app.post('/exercises/:id/edit', isAuthenticated, (req, res) => {
 * Resets the lastCompleted date for all exercises to null.
 * Redirects to the main exercises page after resetting.
 */
-app.post('/exercises/reset', isAuthenticated, (req, res) => {
-  exercises.forEach(e => e.lastCompleted = null);
-  res.redirect('/exercises');
+app.post('/exercises/reset', isAuthenticated, (req, res) => { //// Reset all exercises
+  exercises.forEach(e => e.lastCompleted = null); //  // Set lastCompleted date to null for all exercises
+  res.redirect('/exercises'); //// Redirect to main exercises page
 });
 //--------------------------------------------------------------------------------------
 /* GET / - Redirects to the exercises page
 * Redirects the root URL to the exercises page.
 * This is the default landing page of the application.
 */
-app.get('/', (req, res) => {
-  res.redirect('/exercises');
+app.get('/', (req, res) => { //// Redirect to exercises page
+  res.redirect('/exercises'); // Redirect to main exercises page
 });
 
 //--------------------------------------------------------------------------------------
@@ -692,6 +693,6 @@ app.get('/', (req, res) => {
 * Starts the Express server on the specified port (3000).
 * Logs a message to the console indicating the server is running.
 */
-app.listen(PORT, () => {
-  console.log(`✅ Exercise tracker running at http://localhost:${PORT}`);
+app.listen(PORT, () => { //// Start the server
+  console.log(`✅ Exercise tracker running at http://localhost:${PORT}`); //// Log server running message
 });
